@@ -1,0 +1,73 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          String    @default("EMPLOYEE") // EMPLOYEE, MANAGER, ADMIN
+  managerId     String?
+  manager       User?     @relation("ManagerToEmployee", fields: [managerId], references: [id])
+  employees     User[]    @relation("ManagerToEmployee")
+  goalSheets    GoalSheet[]
+}
+
+model GoalSheet {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  cycleYear   Int
+  status      String   @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, RETURNED
+  lockDate    DateTime?
+  goals       Goal[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Goal {
+  id          String      @id @default(cuid())
+  goalSheetId String
+  goalSheet   GoalSheet   @relation(fields: [goalSheetId], references: [id])
+  thrustArea  String
+  title       String
+  description String?
+  uom         String      // NUMERIC, PERCENTAGE, TIMELINE, ZERO_BASED
+  target      Float
+  weightage   Float
+  isShared    Boolean     @default(false)
+  sourceGoalId String?
+  checkIns    CheckIn[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model CheckIn {
+  id                String   @id @default(cuid())
+  goalId            String
+  goal              Goal     @relation(fields: [goalId], references: [id])
+  quarter           String   // Q1, Q2, Q3, Q4
+  actualAchievement Float?
+  status            String   @default("NOT_STARTED") // NOT_STARTED, ON_TRACK, COMPLETED
+  managerComment    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  entityId    String
+  entityType  String
+  action      String
+  changedBy   String
+  details     String
+  timestamp   DateTime @default(now())
+}
